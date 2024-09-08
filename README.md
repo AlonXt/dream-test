@@ -6,6 +6,7 @@
 - First create a user_id by making a POST request to:
   - https://aye10lq35l.execute-api.us-east-1.amazonaws.com/user
 - Then create a ticket by making another POST request to:
+  - Add this body- {"user_id": "YOUR-USER-ID"} 
   - https://aye10lq35l.execute-api.us-east-1.amazonaws.com/ticket
 - Now you can check on your ticket status by making this GET request:
   - https://aye10lq35l.execute-api.us-east-1.amazonaws.com/ticket?ticket_id=<YOUR_TICKET_ID>
@@ -15,7 +16,7 @@
 **Prerequisites:**
 
 - AWS account
-- Disclaimer: the cloud_formation.yaml is not working, but gives a sense of the design
+- Disclaimer: the cloud_formation.yaml is not production ready, but gives a sense of the design
   - You can paste and view it in the ["Application Composer"](https://aws.amazon.com/application-composer/) on AWS console
 
 **Step 1:** Create a new Aurora PostgreSQL cluster in the AWS Console
@@ -43,7 +44,7 @@ response TEXT);
 **Step 3:** Create Lambda Functions for each component in the project.
 
 - Runtime: Python 3.12
-- Timeout: Increase to 10 seconds (in "ml_process" make it 7 minutes)
+- Timeout: Increase to 10 seconds (for "ml_process" make it 7 minutes)
 - Attach correct IAM roles that allows access to RDS and SQS for each lambda
 - Connect the ticket_creator lambda to the ml_process, so it can invoke it
 - Configure the ticket_status_updater lambda to be triggered by the "Response" SQS when receiving a message
@@ -61,3 +62,5 @@ response TEXT);
 - Make another POST request to /ticket endpoint to create a ticket_id
 - Try to GET from /ticket endpoint with the ticket_id and see what you get 
 - Check if the request is stored in the RDS database
+
+## Enjoy!
