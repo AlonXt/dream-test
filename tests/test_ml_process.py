@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 
 from botocore.exceptions import ClientError
 
-from ml_process import lambda_handler
+from lambdas.ml_process import lambda_handler
 
 
 class TestMLProcess(unittest.TestCase):

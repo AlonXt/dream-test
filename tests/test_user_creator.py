@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 
 from botocore.exceptions import ClientError
 
-from user_creator import lambda_handler
+from lambdas.user_creator import lambda_handler
 
 
 class TestUserCreator(unittest.TestCase):

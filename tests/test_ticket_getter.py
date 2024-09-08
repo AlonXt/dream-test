@@ -3,7 +3,7 @@ import os
 import unittest
 from unittest.mock import MagicMock
 
-from ticket_getter import lambda_handler
+from lambdas.ticket_getter import lambda_handler
 
 
 class TestTicketGetter(unittest.TestCase):
