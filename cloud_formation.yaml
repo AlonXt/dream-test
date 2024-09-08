@@ -1,0 +1,474 @@
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  Api:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: !Sub
+        - ${ResourceName} From Stack ${AWS::StackName}
+        - ResourceName: Api
+      StageName: Prod
+      DefinitionBody:
+        openapi: '3.0'
+        info: { }
+        paths:
+          /ticket:
+            get:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ticketgetter.Arn}/invocations
+              responses: { }
+            post:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ticketcreator.Arn}/invocations
+              responses: { }
+          /user:
+            post:
+              x-amazon-apigateway-integration:
+                httpMethod: POST
+                type: aws_proxy
+                uri: !Sub arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${usercreator.Arn}/invocations
+              responses: { }
+      EndpointConfiguration: REGIONAL
+      TracingEnabled: true
+      Cors:
+        MaxAge: 5
+  ticketgetter:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Description: ''
+      MemorySize: 128
+      Timeout: 10
+      Handler: lambda_function.lambda_handler
+      Runtime: python3.12
+      Architectures:
+        - x86_64
+      EphemeralStorage:
+        Size: 512
+      Environment:
+        Variables:
+          DB_CLUSTER_ARN: YOUR_DB_CLUSTER_ARN
+          DB_NAME: dream
+          SECRET_ARN: YOUR_SECRET_ARN
+          SQS_QUEUE_URL: YOUR_ERROR_QUEUE_URL
+          EXTERNALRDS_PORT: !Ref ExternalRDSPort
+          EXTERNALRDS_HOSTNAME: !Ref ExternalRDSHostname
+          EXTERNALRDS_SECRETARN: !Ref ExternalRDSSecretArn
+          ERRORQUEUE_QUEUE_NAME: !GetAtt ErrorQueue.QueueName
+          ERRORQUEUE_QUEUE_ARN: !GetAtt ErrorQueue.Arn
+          ERRORQUEUE_QUEUE_URL: !Ref ErrorQueue
+      EventInvokeConfig:
+        MaximumEventAgeInSeconds: 21600
+        MaximumRetryAttempts: 2
+      PackageType: Zip
+      Policies:
+        - Statement:
+            - Sid: SecretsManagerDbCredentialsAccess
+              Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+                - secretsmanager:PutResourcePolicy
+                - secretsmanager:PutSecretValue
+                - secretsmanager:DeleteSecret
+                - secretsmanager:DescribeSecret
+                - secretsmanager:TagResource
+              Resource: arn:aws:secretsmanager:*:*:secret:rds-db-credentials/*
+            - Sid: RDSDataServiceAccess
+              Effect: Allow
+              Action:
+                - dbqms:CreateFavoriteQuery
+                - dbqms:DescribeFavoriteQueries
+                - dbqms:UpdateFavoriteQuery
+                - dbqms:DeleteFavoriteQueries
+                - dbqms:GetQueryString
+                - dbqms:CreateQueryHistory
+                - dbqms:DescribeQueryHistory
+                - dbqms:UpdateQueryHistory
+                - dbqms:DeleteQueryHistory
+                - rds-data:ExecuteSql
+                - rds-data:ExecuteStatement
+                - rds-data:BatchExecuteStatement
+                - rds-data:BeginTransaction
+                - rds-data:CommitTransaction
+                - rds-data:RollbackTransaction
+                - secretsmanager:CreateSecret
+                - secretsmanager:ListSecrets
+                - secretsmanager:GetRandomPassword
+                - tag:GetResources
+              Resource: '*'
+            - Action:
+                - sqs:*
+              Effect: Allow
+              Resource: '*'
+            - Effect: Allow
+              Action:
+                - logs:CreateLogGroup
+              Resource: arn:aws:logs:us-east-1:288065335572:*
+            - Effect: Allow
+              Action:
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource:
+                - arn:aws:logs:us-east-1:288065335572:log-group:/aws/lambda/ticket_getter:*
+        - AWSSecretsManagerGetSecretValuePolicy:
+            SecretArn: !Ref ExternalRDSSecretArn
+        - SQSSendMessagePolicy:
+            QueueName: !GetAtt ErrorQueue.QueueName
+      RecursiveLoop: Terminate
+      SnapStart:
+        ApplyOn: None
+      RuntimeManagementConfig:
+        UpdateRuntimeOn: Auto
+      Events:
+        ApiGETticket:
+          Type: Api
+          Properties:
+            Path: /ticket
+            Method: GET
+            RestApiId: !Ref Api
+  ticketstatusupdater:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Description: ''
+      MemorySize: 128
+      Timeout: 10
+      Handler: lambda_function.lambda_handler
+      Runtime: python3.12
+      Architectures:
+        - x86_64
+      EphemeralStorage:
+        Size: 512
+      Environment:
+        Variables:
+          DB_CLUSTER_ARN: YOUR_DB_CLUSTER_ARN
+          DB_NAME: dream
+          SECRET_ARN: YOUR_SECRET_ARN
+          EXTERNALRDS_PORT: !Ref ExternalRDSPort
+          EXTERNALRDS_HOSTNAME: !Ref ExternalRDSHostname
+          EXTERNALRDS_SECRETARN: !Ref ExternalRDSSecretArn
+      EventInvokeConfig:
+        MaximumEventAgeInSeconds: 21600
+        MaximumRetryAttempts: 2
+      PackageType: Zip
+      Policies:
+        - Statement:
+            - Sid: SecretsManagerDbCredentialsAccess
+              Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+                - secretsmanager:PutResourcePolicy
+                - secretsmanager:PutSecretValue
+                - secretsmanager:DeleteSecret
+                - secretsmanager:DescribeSecret
+                - secretsmanager:TagResource
+              Resource: arn:aws:secretsmanager:*:*:secret:rds-db-credentials/*
+            - Sid: RDSDataServiceAccess
+              Effect: Allow
+              Action:
+                - dbqms:CreateFavoriteQuery
+                - dbqms:DescribeFavoriteQueries
+                - dbqms:UpdateFavoriteQuery
+                - dbqms:DeleteFavoriteQueries
+                - dbqms:GetQueryString
+                - dbqms:CreateQueryHistory
+                - dbqms:DescribeQueryHistory
+                - dbqms:UpdateQueryHistory
+                - dbqms:DeleteQueryHistory
+                - rds-data:ExecuteSql
+                - rds-data:ExecuteStatement
+                - rds-data:BatchExecuteStatement
+                - rds-data:BeginTransaction
+                - rds-data:CommitTransaction
+                - rds-data:RollbackTransaction
+                - secretsmanager:CreateSecret
+                - secretsmanager:ListSecrets
+                - secretsmanager:GetRandomPassword
+                - tag:GetResources
+              Resource: '*'
+            - Action:
+                - sqs:*
+              Effect: Allow
+              Resource: '*'
+            - Effect: Allow
+              Action:
+                - logs:CreateLogGroup
+              Resource: arn:aws:logs:us-east-1:288065335572:*
+            - Effect: Allow
+              Action:
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource:
+                - arn:aws:logs:us-east-1:288065335572:log-group:/aws/lambda/ticket_status_updater:*
+        - AWSSecretsManagerGetSecretValuePolicy:
+            SecretArn: !Ref ExternalRDSSecretArn
+      RecursiveLoop: Terminate
+      SnapStart:
+        ApplyOn: None
+      Events:
+        SQS1:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt ResponsesQueue.Arn
+            BatchSize: 10
+      RuntimeManagementConfig:
+        UpdateRuntimeOn: Auto
+  mlprocess:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Description: ''
+      MemorySize: 128
+      Timeout: 483
+      Handler: lambda_function.lambda_handler
+      Runtime: python3.12
+      Architectures:
+        - x86_64
+      EphemeralStorage:
+        Size: 512
+      Environment:
+        Variables:
+          SQS_QUEUE_URL: YOUR_RESPONSE_QUEUE_URL
+          RESPONSESQUEUE_QUEUE_NAME: !GetAtt ResponsesQueue.QueueName
+          RESPONSESQUEUE_QUEUE_ARN: !GetAtt ResponsesQueue.Arn
+          RESPONSESQUEUE_QUEUE_URL: !Ref ResponsesQueue
+      EventInvokeConfig:
+        MaximumEventAgeInSeconds: 21600
+        MaximumRetryAttempts: 2
+      FunctionUrlConfig:
+        AuthType: NONE
+        InvokeMode: BUFFERED
+      PackageType: Zip
+      Policies:
+        - Statement:
+            - Action:
+                - sqs:*
+              Effect: Allow
+              Resource: '*'
+            - Effect: Allow
+              Action:
+                - logs:CreateLogGroup
+              Resource: arn:aws:logs:us-east-1:288065335572:*
+            - Effect: Allow
+              Action:
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource:
+                - arn:aws:logs:us-east-1:288065335572:log-group:/aws/lambda/ml_process:*
+        - SQSSendMessagePolicy:
+            QueueName: !GetAtt ResponsesQueue.QueueName
+      RecursiveLoop: Terminate
+      SnapStart:
+        ApplyOn: None
+      RuntimeManagementConfig:
+        UpdateRuntimeOn: Auto
+  ticketcreator:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Description: ''
+      MemorySize: 128
+      Timeout: 30
+      Handler: lambda_function.lambda_handler
+      Runtime: python3.12
+      Architectures:
+        - x86_64
+      EphemeralStorage:
+        Size: 512
+      Environment:
+        Variables:
+          DB_CLUSTER_ARN: YOUR_DB_CLUSTER_ARN
+          DB_NAME: dream
+          ML_PROCESS_LAMBDA_ARN: arn:aws:lambda:us-east-1:288065335572:function:ml_process
+          SECRET_ARN: YOUR_SECRET_ARN
+          MLPROCESS_FUNCTION_NAME: !Ref mlprocess
+          MLPROCESS_FUNCTION_ARN: !GetAtt mlprocess.Arn
+          EXTERNALRDS_PORT: !Ref ExternalRDSPort
+          EXTERNALRDS_HOSTNAME: !Ref ExternalRDSHostname
+          EXTERNALRDS_SECRETARN: !Ref ExternalRDSSecretArn
+      EventInvokeConfig:
+        MaximumEventAgeInSeconds: 21600
+        MaximumRetryAttempts: 2
+      FunctionUrlConfig:
+        AuthType: NONE
+        InvokeMode: BUFFERED
+      PackageType: Zip
+      Policies:
+        - Statement:
+            - Sid: VisualEditor0
+              Effect: Allow
+              Action:
+                - lambda:InvokeFunction
+              Resource:
+                - !GetAtt ticketcreator.Arn
+            - Sid: SecretsManagerDbCredentialsAccess
+              Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+                - secretsmanager:PutResourcePolicy
+                - secretsmanager:PutSecretValue
+                - secretsmanager:DeleteSecret
+                - secretsmanager:DescribeSecret
+                - secretsmanager:TagResource
+              Resource: arn:aws:secretsmanager:*:*:secret:rds-db-credentials/*
+            - Sid: RDSDataServiceAccess
+              Effect: Allow
+              Action:
+                - dbqms:CreateFavoriteQuery
+                - dbqms:DescribeFavoriteQueries
+                - dbqms:UpdateFavoriteQuery
+                - dbqms:DeleteFavoriteQueries
+                - dbqms:GetQueryString
+                - dbqms:CreateQueryHistory
+                - dbqms:DescribeQueryHistory
+                - dbqms:UpdateQueryHistory
+                - dbqms:DeleteQueryHistory
+                - rds-data:ExecuteSql
+                - rds-data:ExecuteStatement
+                - rds-data:BatchExecuteStatement
+                - rds-data:BeginTransaction
+                - rds-data:CommitTransaction
+                - rds-data:RollbackTransaction
+                - secretsmanager:CreateSecret
+                - secretsmanager:ListSecrets
+                - secretsmanager:GetRandomPassword
+                - tag:GetResources
+              Resource: '*'
+            - Effect: Allow
+              Action:
+                - logs:CreateLogGroup
+              Resource: arn:aws:logs:us-east-1:288065335572:*
+            - Effect: Allow
+              Action:
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource:
+                - arn:aws:logs:us-east-1:288065335572:log-group:/aws/lambda/ticket_creator:*
+        - LambdaInvokePolicy:
+            FunctionName: !Ref mlprocess
+        - AWSSecretsManagerGetSecretValuePolicy:
+            SecretArn: !Ref ExternalRDSSecretArn
+      RecursiveLoop: Terminate
+      SnapStart:
+        ApplyOn: None
+      RuntimeManagementConfig:
+        UpdateRuntimeOn: Auto
+      Events:
+        ApiPOSTticket:
+          Type: Api
+          Properties:
+            Path: /ticket
+            Method: POST
+            RestApiId: !Ref Api
+  usercreator:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Description: ''
+      MemorySize: 128
+      Timeout: 3
+      Handler: lambda_function.lambda_handler
+      Runtime: python3.12
+      Architectures:
+        - x86_64
+      EphemeralStorage:
+        Size: 512
+      Environment:
+        Variables:
+          DB_CLUSTER_ARN: YOUR_DB_CLUSTER_ARN
+          DB_NAME: dream
+          SECRET_ARN: YOUR_SECRET_ARN
+          EXTERNALRDS_PORT: !Ref ExternalRDSPort
+          EXTERNALRDS_HOSTNAME: !Ref ExternalRDSHostname
+          EXTERNALRDS_SECRETARN: !Ref ExternalRDSSecretArn
+      EventInvokeConfig:
+        MaximumEventAgeInSeconds: 21600
+        MaximumRetryAttempts: 2
+      PackageType: Zip
+      Policies:
+        - Statement:
+            - Sid: SecretsManagerDbCredentialsAccess
+              Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+                - secretsmanager:PutResourcePolicy
+                - secretsmanager:PutSecretValue
+                - secretsmanager:DeleteSecret
+                - secretsmanager:DescribeSecret
+                - secretsmanager:TagResource
+              Resource: arn:aws:secretsmanager:*:*:secret:rds-db-credentials/*
+            - Sid: RDSDataServiceAccess
+              Effect: Allow
+              Action:
+                - dbqms:CreateFavoriteQuery
+                - dbqms:DescribeFavoriteQueries
+                - dbqms:UpdateFavoriteQuery
+                - dbqms:DeleteFavoriteQueries
+                - dbqms:GetQueryString
+                - dbqms:CreateQueryHistory
+                - dbqms:DescribeQueryHistory
+                - dbqms:UpdateQueryHistory
+                - dbqms:DeleteQueryHistory
+                - rds-data:ExecuteSql
+                - rds-data:ExecuteStatement
+                - rds-data:BatchExecuteStatement
+                - rds-data:BeginTransaction
+                - rds-data:CommitTransaction
+                - rds-data:RollbackTransaction
+                - secretsmanager:CreateSecret
+                - secretsmanager:ListSecrets
+                - secretsmanager:GetRandomPassword
+                - tag:GetResources
+              Resource: '*'
+            - Effect: Allow
+              Action:
+                - logs:CreateLogGroup
+              Resource: arn:aws:logs:us-east-1:288065335572:*
+            - Effect: Allow
+              Action:
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+              Resource:
+                - arn:aws:logs:us-east-1:288065335572:log-group:/aws/lambda/user_creator:*
+        - AWSSecretsManagerGetSecretValuePolicy:
+            SecretArn: !Ref ExternalRDSSecretArn
+      RecursiveLoop: Terminate
+      SnapStart:
+        ApplyOn: None
+      RuntimeManagementConfig:
+        UpdateRuntimeOn: Auto
+      Events:
+        ApiPOSTuser:
+          Type: Api
+          Properties:
+            Path: /user
+            Method: POST
+            RestApiId: !Ref Api
+  ResponsesQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: SQSQueue1
+      SqsManagedSseEnabled: true
+      MessageRetentionPeriod: 345600
+  ErrorQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      MessageRetentionPeriod: 345600
+Metadata:
+  AWS::Composer::ExternalResources:
+    ExternalRDS:
+      Type: externalRDS
+      Settings:
+        Port: !Ref ExternalRDSPort
+        Hostname: !Ref ExternalRDSHostname
+        SecretArn: !Ref ExternalRDSSecretArn
+Parameters:
+  ExternalRDSPort:
+    Type: Number
+  ExternalRDSHostname:
+    Type: String
+  ExternalRDSSecretArn:
+    Type: String

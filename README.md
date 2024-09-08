@@ -1,10 +1,22 @@
 # dream assignment- Senior Platform Engineer Exercise
 
+## System Playground
+
+####You can try this up and running production system!
+- First create a user_id by making a POST request to:
+  - https://aye10lq35l.execute-api.us-east-1.amazonaws.com/user
+- Then create a ticket by making another POST request to:
+  - https://aye10lq35l.execute-api.us-east-1.amazonaws.com/ticket
+- Now you can check on your ticket status by making this GET request:
+  - https://aye10lq35l.execute-api.us-east-1.amazonaws.com/ticket?ticket_id=<YOUR_TICKET_ID>
+
 ## Setup Instructions
 
 **Prerequisites:**
 
 - AWS account
+- Disclaimer: the cloud_formation.yaml is not working, but gives a sense of the design
+  - You can paste and view it in the ["Application Composer"](https://aws.amazon.com/application-composer/) on AWS console
 
 **Step 1:** Create a new Aurora PostgreSQL cluster in the AWS Console
 
@@ -15,9 +27,7 @@
 CREATE TABLE IF NOT EXISTS users (
 user_id VARCHAR(255) PRIMARY KEY,
 time_created VARCHAR(255) NOT NULL);
-```
 
-```
 CREATE TABLE IF NOT EXISTS tickets (
 ticket_id VARCHAR(255) PRIMARY KEY, 
 user_id VARCHAR(255) REFERENCES users(user_id), 
