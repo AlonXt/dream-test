@@ -1,8 +1,8 @@
-# dream assignment- Senior Platform Engineer Exercise
+# Senior Platform Engineer Exercise
 
 ## System Playground
 
-####You can try this up and running production system!
+#### You can try this up and running production system!
 - First create a user_id by making a POST request to:
   - https://aye10lq35l.execute-api.us-east-1.amazonaws.com/user
 - Then create a ticket by making another POST request to:
@@ -41,14 +41,14 @@ response TEXT);
 
 - one for Responses and one for Errors
 
-**Step 3:** Create Lambda Functions for each component in the project.
+**Step 3:** Create Lambda Functions for each component in the lambdas directory.
 
 - Runtime: Python 3.12
-- Timeout: Increase to 10 seconds (for "ml_process" make it 7 minutes)
 - Attach correct IAM roles that allows access to RDS and SQS for each lambda
-- Connect the ticket_creator lambda to the ml_process, so it can invoke it
-- Configure the ticket_status_updater lambda to be triggered by the "Response" SQS when receiving a message
 - Set the required environment variables for each lambda
+- Give the ticket_creator lambda permissions to invoke the ml_process, and the vice-versa
+- Configure the ticket_status_updater lambda to be triggered by the "Response" SQS when receiving a message
+- Timeout: Increase to 10 seconds for all lambdas (for "ml_process" make it 7 minutes!)
 
 **Step 4:** Create an API Gateway for an HTTP API
 
