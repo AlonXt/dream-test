@@ -2,14 +2,14 @@
 
 ## System Playground
 
-#### You can try this up and running production system!
+#### You can try this up and running production system! (No longer available)
 - First create a user_id by making a POST request to:
-  - https://aye10lq35l.execute-api.us-east-1.amazonaws.com/user
+  - https://YOUR-URL.amazonaws.com/user
 - Then create a ticket by making another POST request to:
   - Add this body- {"user_id": "YOUR-USER-ID"} 
-  - https://aye10lq35l.execute-api.us-east-1.amazonaws.com/ticket
+  - https://YOUR-URL.amazonaws.com/ticket
 - Now you can check on your ticket status by making this GET request:
-  - https://aye10lq35l.execute-api.us-east-1.amazonaws.com/ticket?ticket_id=<YOUR_TICKET_ID>
+  - https://YOUR-URL.amazonaws.com/ticket?ticket_id=<YOUR_TICKET_ID>
 
 ## Setup Instructions
 
