@@ -1,5 +1,3 @@
-# Senior Platform Engineer Exercise
-
 ## System Playground
 
 #### You can try this up and running production system! (No longer available)
